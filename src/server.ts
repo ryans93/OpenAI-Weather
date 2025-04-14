@@ -21,19 +21,49 @@ const app = express();
 app.use(express.json());
 
 // TODO: Initialize the OpenAI model
-
+let model: OpenAI = new OpenAI({ temperature: 0, openAIApiKey: apiKey, modelName: 'gpt-4o' });;
 // TODO: Define the parser for the structured output
-
+const parser = StructuredOutputParser.fromNamesAndDescriptions({
+  // Define the output variables and their descriptions
+  Day1: "The weather forecast for today",
+  Day2: "The weather forecast for tomorrow",
+  Day3: "The weather forecast for 2 days from today",
+  Day4: "The weather forecast for 3 days from today",
+  Day5: "The weather forecast for 4 days from today"
+});
 // TODO: Get the format instructions from the parser
+const formatInstructions = parser.getFormatInstructions();
 
 // TODO: Define the prompt template
-
+const promptTemplate = new PromptTemplate({
+  template: "You're a meteorologist giving the 5-day weather forecast in the style of a sports announcer for any city or zipcode.\n{format_instructions}\n{text}",
+  inputVariables: ["text"],
+  partialVariables: { format_instructions: formatInstructions }
+});
 // Create a prompt function that takes the user input and passes it through the call method
-const promptFunc = async (input: string) => {
-        // TODO: Format the prompt with the user input
-        // TODO: Call the model with the formatted prompt
-        // TODO: return the JSON response
-        // TODO: Catch any errors and log them to the console
+const promptFunc = async (text: string) => {
+  // TODO: Format the prompt with the user input
+  // TODO: Call the model with the formatted prompt
+  // TODO: return the JSON response
+  // TODO: Catch any errors and log them to the console
+  try {
+    if (model) {
+      const parsedInput = await promptTemplate.format({ text })
+      const response = await model.invoke(parsedInput);
+      try {
+        return await parser.parse(response);
+      } catch (err) {
+        console.error('Error in parseResponse:', err);
+        return { error: 'Failed to parse the response from the model.' };
+      }
+    };
+    return "Error initializing OpenAI model"
+  }
+
+  catch (err) {
+    console.error(err);
+    throw err;
+  }
 };
 
 // Endpoint to handle request
